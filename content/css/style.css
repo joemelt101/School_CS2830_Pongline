@@ -1,0 +1,46 @@
+body
+{
+    background: black;
+    color: white;
+    font-family: pixel;
+}
+            
+input[type=text], input[type=password]
+{
+    border: none;
+    padding: 10px;
+}
+
+input[type=submit]
+{
+    border: 1px solid white;
+    padding: 5px;
+    background: black;
+    color: white;
+}
+
+input[type=submit]:hover
+{
+    cursor: pointer;
+}
+
+.button
+{
+    width: 200px;
+    height: 50px;
+    font-size: 20pt;
+    background: black;
+    color: white;
+    margin: 10px;
+    margin-bottom: 0px;
+}
+
+.button:hover
+{
+    font-weight: bold;
+}
+
+a:visited
+{
+    color: white;
+}

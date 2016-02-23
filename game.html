@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>Pongline</title>
+        
+        <link rel="stylesheet" type="text/css" href="content/css/style.css" />
+        <link rel="stylesheet" href="js/jquery_ui/jquery-ui.min.css" />
+        <script src="js/jquery-2.1.3.js"></script>
+        <script src="js/jquery_ui/jquery-ui.js"></script>
+        
+        <style> 
+            
+            /* Import Used Font */
+            @font-face
+            {
+                font-family: pixel;
+                src: url('content/fonts/slkscrb.ttf');
+            }
+            
+            /* Unique Styling */
+            
+            #canvasDiv
+            {
+                width: 1000px;
+                height: 600px;
+                margin: 50px auto;
+                border-top: 20px solid white;
+                border-bottom: 20px solid white;
+                border-left: 1px dashed white;
+                border-right: 1px dashed white;
+            }
+            
+            #popup
+            {
+                color: white;
+                position: absolute;
+                border: 5px solid white;
+                width: 500px;
+                height: 400px;
+                margin-left: auto;
+                margin-right: auto;
+                top: 30%;
+                left: 0;
+                right: 0;
+                background: black;
+                padding: 10px;
+                text-align: center;
+                font-size: 25pt;
+            }
+            
+            #popupBackground
+            {
+                position: absolute;
+                left: 0px;
+                top: 0px;
+                width: 100%;
+                height: 100%;
+                background-color: gray;
+                opacity: .5;
+            }
+            
+        </style>
+        
+        <script>
+            //options
+            var paddleWidth = 10;
+            var paddleHeight = 100;
+            var ballWidth = 30;
+            var paddleDistanceFromEdge = 15;
+            var canvasWidth = 1000;
+            var canvasHeight = 600;
+            var ballSpeed = 15;
+            var paddleSpeed = 5;
+            var angleDiv = 4;
+            var maxScore = 1;
+            
+            //holds a list of game elements to be updated...
+            var gameElements = new Array();
+            
+            //initiate game elements positions
+            var b = new GE(canvasWidth / 2 - ballWidth / 2, canvasHeight / 2 - ballWidth / 2, ballWidth, ballWidth);
+            var lp = new GE(paddleDistanceFromEdge, canvasHeight / 2 - paddleHeight / 2, paddleWidth, paddleHeight);
+            var rp = new GE(canvasWidth - paddleWidth - paddleDistanceFromEdge, canvasHeight / 2 - paddleHeight / 2, paddleWidth, paddleHeight);
+            var sl = {}, sr = {};
+            
+            var canvas;
+            
+            //keyboard inputs that are listened for...
+            var upPressed, downPressed;
+            
+            /////////
+            //Classes
+            /////////
+            
+            //Game Entity Class
+            function GE(x, y, width, height)
+            {
+                this.x = x;
+                this.y = y;
+                this.dx = 0;
+                this.dy = 0;
+                this.width = width;
+                this.height = height;
+                
+                this.update = function()
+                {                    
+                    this.x += this.dx;
+                    this.y += this.dy;
+                    
+                    $(this).css({"left": this.x.toString() + "px", "top": this.y.toString() + "px"});
+                    
+                    //redraw...
+                    //TODO: Finish
+                    var context = canvas.getContext("2d");
+                    context.fillStyle = "#FFFFFF";
+                    context.fillRect(this.x, this.y, this.width, this.height);
+                }
+                
+                //set to blank function for future update...
+                this.updateCustom = function() {};
+                gameElements.push(this);
+            }
+            
+            //Player Paddle Class Extendor
+            function PlayerPaddleExt(obj)
+            {                
+                obj.updateCustom = function()
+                {
+                    if (downPressed)
+                    {
+                        obj.dy = paddleSpeed;
+                    }
+                    else if (upPressed)
+                    {
+                        obj.dy = -paddleSpeed;
+                    }
+                    else
+                    {
+                        //neither are pressed...
+                        obj.dy = 0;
+                    }
+                    
+                    if (obj.y >= canvasHeight - obj.height)
+                    {
+                        obj.y = canvasHeight - obj.height;
+                        
+                        if (obj.dy > 0)
+                        {
+                            obj.dy = 0;
+                        }
+                    }
+                    else if (obj.y <= 0)
+                    {
+                        obj.y = 0;
+                        
+                        if (obj.dy < 0)
+                        {
+                            obj.dy = 0;
+                        }
+                    }
+                }
+            }
+            
+            //Computer Paddle Class
+            function CompPaddleExt(obj)
+            {          
+                obj.updateCustom = function()
+                {
+                    //AI
+                    //calculate the projected final ball location
+                    //y = mx + b
+                    //m = dy / dx of the ball
+                    //x = right wall.x
+                    //y = projected y of the ball
+                    //b = current y of the ball
+                    var m = window.b.dy / window.b.dx;
+                    
+                    //check if divided by 0
+                    if (m == NaN)
+                    {
+                        m = 0;
+                    }
+                    
+                    var x = rp.x - window.b.x;
+                    var b = window.b.y;
+                    var y = m*x + b;
+                    
+                    //now have projected y...
+                    //need to move paddle accordingly
+                    if (y > obj.y + obj.height)
+                    {
+                        obj.dy = paddleSpeed;
+                    }
+                    else if (y < obj.y)
+                    {
+                        obj.dy = -paddleSpeed;
+                    }
+                    else
+                    {
+                        obj.dy = 0;
+                    }
+                    
+                    //else the projected y must be where the paddle current is...
+                    
+                    //bounds checking...
+                    if (obj.y >= canvasHeight - obj.height)
+                    {
+                        obj.y = canvasHeight - obj.height;
+                        
+                        if (obj.dy > 0)
+                        {
+                            obj.dy = 0;
+                        }
+                    }
+                    else if (obj.y <= 0)
+                    {
+                        obj.y = 0;
+                        
+                        if (obj.dy < 0)
+                        {
+                            obj.dy = 0;
+                        }
+                    }
+                }
+            }
+            
+            //Ball Class
+            function BallExt(obj)
+            {
+                obj.passed = false;
+                
+                obj.startRandom = function()
+                {
+                    obj.passed = false;
+                    obj.x = canvasWidth / 2 - ballWidth / 2;
+                    obj.y = canvasHeight / 2 - ballWidth / 2;
+                    obj.dx = ballSpeed; //set the ball speed
+                    
+                    //randomly choose the direction
+                    var dir = Math.random();
+                    
+                    if (dir > .5)
+                    {
+                        obj.dx *= -1;
+                    }
+                    
+                    obj.dy = 0;
+                }
+                
+                obj.isHittingObj = function(o)
+                {
+                    if (obj.x <= o.x + o.width && obj.x >= o.x)
+                    {                        
+                        //horizontal is colliding
+                        //check vertical
+                        if (obj.y <= o.y && obj.y + obj.height >= o.y)
+                        {
+                            return true;
+                        }
+                        
+                        if (obj.y <= o.y + o.height && obj.y + obj.height >= o.y + o.height)
+                        {
+                            return true;
+                        }
+                        
+                        if (obj.y >= o.y && obj.y + obj.height <= o.y + o.height)
+                        {
+                            return true;
+                        }
+                    }
+                    
+                    if (obj.x <= o.x && obj.x + obj.width >= o.x)
+                    {
+                        if (obj.y <= o.y && obj.y + obj.height >= o.y)
+                        {
+                            return true;
+                        }
+                        
+                        if (obj.y <= o.y + o.height && obj.y + obj.height >= o.y + o.height)
+                        {
+                            return true;
+                        }
+                        
+                        if (obj.y >= o.y && obj.y + obj.height <= o.y + o.height)
+                        {
+                            return true;
+                        }
+                    }
+                    
+                    return false;
+                }
+                
+                obj.updateCustom = function()
+                {
+                    //bounds checking...
+                    if (obj.y >= canvasHeight - obj.height)
+                    {
+                        obj.y = canvasHeight - obj.height;
+                        
+                        obj.dy *= -1;
+                    }
+                    else if (obj.y <= 0)
+                    {
+                        obj.y = 0;
+                        
+                        obj.dy *= -1;
+                    }
+                    
+                    if (obj.x > canvasWidth)
+                    {
+                        //increment player score
+                        var i = parseInt(window.sl.text);
+                        sl.text = (i + 1).toString();
+                        
+                        if (i + 1 == maxScore)
+                        {
+                            //player won!
+                            showWinner("player");
+                            
+                            obj.startRandom();
+                            obj.dx = 0;
+                            obj.dy = 0;
+                        }
+                        else
+                        {
+                            obj.startRandom();
+                        }
+                    }
+                    else if (obj.x + obj.width < 0)
+                    {
+                        var i = parseInt(window.sr.text);
+                        sr.text = (i + 1).toString();
+                        
+                        if (i + 1 == maxScore)
+                        {
+                            //computer won!
+                            showWinner("computer");
+                            
+                            obj.startRandom();  
+                            obj.dx = 0;
+                            obj.dy = 0;
+                        }
+                        else
+                        {
+                            obj.startRandom();
+                        }
+                    }
+                    
+                    //if ball has moved passed the surface of the paddle and it's not hitting yet, then the ball has "passed" the paddle
+                    
+                    
+                    //check if hit paddle
+                    if (obj.isHittingObj(lp))
+                    {
+                        //check if the ball has passed the front edge
+                        if (obj.passed == true)
+                        {
+                            if (obj.y < lp.y)
+                            {
+                                obj.dy = -ballSpeed;
+                                obj.y = lp.y - obj.height;
+                            }
+                            else
+                            {
+                                obj.dy = ballSpeed;
+                                obj.y = lp.y + lp.height;
+                            }
+                        }
+                        else
+                        {
+                            obj.x = lp.x + lp.width;
+                            obj.dx *= -1;
+                            
+                            var midypaddle = lp.y + lp.height / 2;
+                            var midyball = obj.y + obj.height / 2;
+                            obj.dy = midyball - midypaddle;
+                            obj.dy /= angleDiv;
+                        }
+                    }
+                    else if (obj.isHittingObj(rp))
+                    {
+                        if (obj.passed == true)
+                        {
+                            if (obj.y < rp.y)
+                            {
+                                obj.dy = -ballSpeed;
+                                obj.y = rp.y - obj.height;
+                            }
+                            else
+                            {
+                                obj.dy = ballSpeed;
+                                obj.y = rp.y + rp.height;
+                            }
+                        }
+                        else
+                        {
+                            obj.x = rp.x - obj.width;
+                            obj.dx *= -1;
+                            
+                            var midypaddle = rp.y + rp.height / 2;
+                            var midyball = obj.y + obj.height / 2;
+                            obj.dy = midyball - midypaddle;
+                            obj.dy /= angleDiv;
+                        }
+                    }
+                    else
+                    {
+                        //ball is not hitting the left paddle or right paddle
+                        if (obj.x < lp.x + lp.width)
+                        {
+                            //ball has passed the paddle
+                            obj.passed = true;
+                        }
+                        else if (obj.x + obj.width > rp.x)
+                        {
+                            obj.passed = true;
+                        }
+                    }
+                }
+            }
+            
+            function textExt(obj, x, y, text, size)
+            {
+                obj.x = x;
+                obj.y = y;
+                obj.size = size;
+                obj.text = text;
+                obj.update = function() {};
+                
+                obj.updateCustom = function()
+                {
+                    var context = canvas.getContext("2d");
+                    context.font = obj.size.toString() + "pt pixel";
+                    context.fillText(obj.text, obj.x, obj.y);
+                }
+                
+                gameElements.push(obj);
+            }
+            
+            function resetPaddles()
+            {
+                lp.y = canvasHeight / 2 - lp.height / 2;
+                rp.y = canvasHeight / 2 - rp.height / 2;
+            }
+                        
+            function showWinner(winner)
+            {
+                if (winner == "computer")
+                {
+                    showPopup("Computer Wins... :(");
+                }
+                else
+                {
+                    //player won
+                    showPopup("You Won!");
+                }
+            }
+            
+            function showPopup(text)
+            {
+                $("#popup").css("opacity", "1");
+                $("#popupBackground").css("opacity", ".5");
+                
+                $("#popup").html(text + "<br /><br /><button class='button' onClick='replayClicked()'>Play Again?</button><br /><button class='button' onClick='quitClicked()'>Quit</button><br /><button class='button' id='submitScoreButton' onClick='submitScoreClicked()'>Submit Score</button><br /><input id='name' type='text' placeholder='Input Name...'></input><br /><div id='progressBar'></div>");
+                
+                $("#progressBar").css({
+                    "height": "20px",
+                    "margin": "10px"
+                });
+                
+                $("#progressBar").progressbar({
+                    value: 0,
+                });
+                
+                $("#progressBar").hide();
+            }
+            
+            function replayClicked()
+            {
+                resetPaddles();
+                window.b.startRandom();
+                sl.text = "0";
+                sr.text = "0";
+                hidePopup();
+            }
+            
+            function quitClicked()
+            {
+                document.location.href = "index.html";
+            }
+            
+            function submitScoreClicked()
+            {
+                console.dir("Clocked");
+                
+                //disable the submit button...
+                $("#submitScoreButton").prop('disabled', 'true');
+                
+                var pScore = parseInt(window.sl.text);
+                var cScore = parseInt(window.sr.text);
+                var name = encodeURI($("#name").val());
+                
+                var uri = "http://babbage.cs.missouri.edu/~jomr5b/pl/service.php?type=submit&ps=" + pScore + "&n=" + name + "&cs=" + cScore;
+                uri = encodeURI(uri);
+                
+                var request = new XMLHttpRequest();
+                request.open("GET", uri, true);
+                request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+                
+                $("#progressBar").show();
+                
+                request.onreadystatechange = function()
+                {
+                    //update the progress bar...
+                    $("#progressBar").progressbar("option", "value", request.readyState * 25);
+                    
+                    if (request.readyState == 4)
+                    {
+                        //done!
+                        $("#progressBar").hide();
+                        $("#submitScoreButton").html("Submitted!");
+                        $("#name").prop("disabled", true);
+                    }
+                }
+                
+                request.send();
+            }
+            
+            function hidePopup(text)
+            {
+                $("#popup").css("opacity", "0");
+                $("#popupBackground").css("opacity", "0");
+            }
+            
+            ///////////
+            //Main Loop
+            ///////////
+            
+            function update()
+            {
+                //clear the canvas...
+                canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+                
+                for (var i = 0; i < gameElements.length; ++i)
+                {
+                    //update the graphics...
+                    gameElements[i].update(gameElements[i]);
+                    gameElements[i].updateCustom(gameElements[i]);
+                }
+            }
+            
+            ////////////////
+            //Initialization
+            ////////////////
+            
+            $().ready(
+                
+                function()
+                {            
+                    canvas = document.getElementById("gameCanvas");
+                    
+                    //initiate scores...
+                    textExt(sl, 200, 80, "0", 50);
+                    textExt(sr, canvasWidth - 250, 80, "0", 50);
+                    
+                    BallExt(b);
+                    PlayerPaddleExt(lp);
+                    CompPaddleExt(rp);
+                    
+                    hidePopup();
+                    
+                    initiateKeyListeners();
+                    
+                    //initiate game timer to 60fps
+                    window.setInterval(update, 1000 / 60);
+                    
+                    //start the ball's motion
+                    b.startRandom();
+                }
+                
+            );
+            
+            function initiateKeyListeners()
+            {    
+                document.addEventListener('keydown', 
+
+                function(event)
+                {
+                    if (event.keyCode == 38)
+                    {
+                        //up arrow pressed...
+                        upPressed = true;
+                    }
+
+                    if (event.keyCode == 40)
+                    {
+                        //down arrow pressed...
+                        downPressed = true;
+                    }
+                });
+
+                document.addEventListener('keyup',
+
+                function (event)
+                {
+                    if (event.keyCode == 38)
+                    {
+                        upPressed = false;
+                    }
+
+                    if (event.keyCode == 40)
+                    {
+                        downPressed = false;
+                    }
+                });
+            }
+            
+            
+        </script>
+    </head>
+    
+    <body>
+        <div id="canvasDiv">
+            <canvas width="1000px" height="600px" id="gameCanvas"></canvas>
+        </div>
+        
+        <div id="popupBackground">
+            
+        </div>
+        
+        <div id="popup">
+        </div>
+    </body>
+</html>

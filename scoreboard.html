@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>Pongline Scoreboard</title>
+        
+        <link rel="stylesheet" type="text/css" href="content/css/style.css" />
+        
+        <style>
+            
+            /* Import Desired Font */
+            
+            @font-face
+            {
+                font-family: pixel;
+                src: url('content/fonts/slkscrb.ttf');
+            }
+            
+            /* General Page CSS */
+            
+            body
+            {
+                text-align: center;
+            }
+            
+            body p
+            {
+                font-size: 40pt;
+            }
+            
+            /* Table CSS */
+            
+            table
+            {
+                border-collapse: collapse;
+                border: 1px solid white;
+                color: white;
+                margin: auto;
+                margin-top: 20px;
+                text-align: center;
+            }
+            
+            table tr
+            {
+                border: 1px solid white;
+            }
+            
+            table tr td
+            {
+                padding: 10px;
+                border: 2px solid white;
+            }
+            
+            table tr th
+            {
+                padding: 10px;
+                border: 2px solid white;
+            }
+            
+        </style>
+        
+        <script src="js/jquery-2.1.3.js"></script>
+        
+        <script>
+            
+            var dataTable;
+            
+            $(
+                function ()
+                {
+                    //initiate reference to the dataTable
+                    dataTable = $("#dataTable");
+                    
+                    //load all elements
+                    $.ajax("http://babbage.cs.missouri.edu/~jomr5b/pl/service.php?type=get").done(
+                    function (data)
+                    {
+                        data = data.split("||");
+                        data = data.reverse();
+                        
+                        for (var i = 0; i < data.length; ++i)
+                        {
+                            var line = data[i].trim();
+                            
+                            if (line != "")
+                            {
+                                //actual data is on this line
+                                var start = line.indexOf(' ');
+                                
+                                //split
+                                var score = line.slice(0, start);
+                                var name = line.slice(start, line.length);
+                                
+                                console.dir(score);
+                                console.dir(name);
+                                
+                                var scoreSplit = score.split("-");
+                                var pScore = scoreSplit[0];
+                                var cScore = scoreSplit[1];
+                                
+                                name = decodeURI(name);
+                                
+                                addRow(name, pScore, cScore);
+                            }
+                        }
+                    });
+                }
+             );
+            
+            function clearTable()
+            {
+                dataTable.html("<tr><th>Name</th><th>Player Score</th><th>Computer Score</th></tr>");
+            }
+            
+            function addRow(name, pScore, cScore)
+            {
+                dataTable.append("<tr><td>" + name + "</td><td>" + pScore + "</td><td>" + cScore + "</td>");
+            }
+            
+        </script>
+        
+    </head>
+    
+    <body>
+        <p>Scoreboard:</p>
+        
+        <a href="index.html">Go Back</a>
+        
+        <table id="dataTable">
+            <tr>
+                <th>Name</th>
+                <th>Player Score</th>
+                <th>Computer Score</th>
+            </tr>
+        </table>
+            
+    </body>
+</html>

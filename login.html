@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>Administrator Login</title>
+        
+        <link rel="stylesheet" href="content/css/style.css" />
+        
+        <style> 
+            
+            /* Import Used Font */
+            @font-face
+            {
+                font-family: pixel;
+                src: url('content/fonts/slkscrb.ttf');
+            }
+            
+            div#outer
+            {
+                width: 400px;
+                border: 4px solid white;
+                margin: auto;
+                margin-top: 200px;
+                padding: 10px;
+            }
+            
+            div#inner
+            {
+                margin: 10px 10px 10px 0px;
+            }
+            
+        </style>
+        
+    </head>
+    
+    <body>
+        
+        <div id="outer">
+            <p>Administrator Login...</p>
+            
+            <form method="post" action="http://babbage.cs.missouri.edu/~jomr5b/pl/service.php">
+                <div id="inner">
+                    <input name="username" type="text" placeholder="Username" />
+                    <input name="password" type="password" placeholder="Password" />
+                </div>
+                
+                <input type="submit" />
+            </form>
+        </div>
+        
+    </body>
+</html>
